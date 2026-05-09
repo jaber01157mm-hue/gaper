@@ -1,0 +1,89 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account details and settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Vehicle": {
+      "title": "Vehicle",
+      "description": "Customer vehicle details",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string" },
+        "make": { "type": "string" },
+        "model": { "type": "string" },
+        "year": { "type": "number" },
+        "licensePlate": { "type": "string" },
+        "vin": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "make", "model", "licensePlate"]
+    },
+    "Booking": {
+      "title": "Service Booking",
+      "description": "Maintenance appointment request",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "vehicleId": { "type": "string" },
+        "serviceType": { 
+          "type": "string",
+          "enum": ["oil_change", "mechanical", "electrical", "diagnostic", "general"]
+        },
+        "date": { "type": "string", "format": "date" },
+        "time": { "type": "string" },
+        "status": { 
+          "type": "string",
+          "enum": ["pending", "confirmed", "completed", "cancelled"]
+        },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "serviceType", "date", "status"]
+    },
+    "MaintenanceRecord": {
+      "title": "Maintenance Record",
+      "description": "History of services performed on a vehicle",
+      "type": "object",
+      "properties": {
+        "vehicleId": { "type": "string" },
+        "bookingId": { "type": "string" },
+        "serviceType": { "type": "string" },
+        "description": { "type": "string" },
+        "odometerReading": { "type": "number" },
+        "nextServiceOdometer": { "type": "number" },
+        "cost": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["vehicleId", "serviceType", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/vehicles/{vehicleId}": {
+      "schema": "Vehicle",
+      "description": "Registered customer vehicles"
+    },
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Service appointments"
+    },
+    "/vehicles/{vehicleId}/history/{recordId}": {
+      "schema": "MaintenanceRecord",
+      "description": "Maintenance history for a specific vehicle"
+    }
+  }
+}
