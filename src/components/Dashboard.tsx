@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/src/lib/supabase';
-import { History, Bell, AlertTriangle, ChevronRight, Gauge, Lock, LogIn, Sparkles, BrainCircuit } from 'lucide-react';
+import { History, Bell, AlertTriangle, ChevronRight, Gauge, Lock, LogIn, Sparkles, BrainCircuit, Trash2, Pencil, CheckCircle, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Booking, MaintenanceRecord } from '@/src/types';
 import { cn } from '@/src/lib/utils';
@@ -12,6 +12,8 @@ export default function UserDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editData, setEditData] = useState({ date: '', time: '' });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
@@ -58,6 +60,26 @@ export default function UserDashboard() {
     } catch (error: any) {
       console.error("Login Error:", error);
       alert("Login failed: " + (error.message || "Unknown error"));
+    }
+  };
+
+  const deleteBooking = async (id: string) => {
+    if (!confirm("هل أنت متأكد من حذف هذا الحجز؟")) return;
+    const { error } = await supabase.from('bookings').delete().eq('id', id);
+    if (error) alert("حدث خطأ أثناء الحذف");
+  };
+
+  const completeBooking = async (id: string) => {
+    const { error } = await supabase.from('bookings').update({ status: 'completed' }).eq('id', id);
+    if (error) alert("حدث خطأ أثناء التحديث");
+  };
+
+  const saveEdit = async (id: string) => {
+    const { error } = await supabase.from('bookings').update({ date: editData.date, time: editData.time }).eq('id', id);
+    if (error) {
+      alert("حدث خطأ أثناء التعديل");
+    } else {
+      setEditingId(null);
     }
   };
 
@@ -132,24 +154,51 @@ export default function UserDashboard() {
                 {bookings.map((booking) => (
                   <div 
                     key={booking.id} 
-                    className="group bg-white/5 border border-white/10 p-6 rounded-2xl flex items-center justify-between hover:bg-white/[0.08] transition-all"
+                    className="group bg-white/5 border border-white/10 p-6 rounded-2xl flex flex-col gap-4 hover:bg-white/[0.08] transition-all"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className={cn(
-                        "w-2 h-2 rounded-full",
-                        booking.status === 'pending' ? 'bg-yellow-500' : 
-                        booking.status === 'confirmed' ? 'bg-green-500' : 'bg-white/20'
-                      )} />
-                      <div>
-                        <h4 className="font-bold uppercase text-sm tracking-wide">{booking.serviceType.replace('_', ' ')}</h4>
-                        <p className="text-xs text-white/40">{booking.date} @ {booking.time}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={cn(
+                          "w-2 h-2 rounded-full",
+                          booking.status === 'pending' ? 'bg-yellow-500' : 
+                          booking.status === 'completed' ? 'bg-blue-500' :
+                          booking.status === 'confirmed' ? 'bg-green-500' : 'bg-white/20'
+                        )} />
+                        <div>
+                          <h4 className="font-bold uppercase text-sm tracking-wide">{booking.serviceType.replace('_', ' ')}</h4>
+                          <p className="text-xs text-white/40">{booking.date} @ {booking.time}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase py-1 px-3 bg-white/5 rounded-full border border-white/10">
+                          {booking.status}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-[10px] font-bold uppercase py-1 px-3 bg-white/5 rounded-full border border-white/10">
-                        {booking.status}
-                      </span>
-                      <ChevronRight size={16} className="text-white/20 group-hover:text-white transition-colors" />
+
+                    <div className="flex items-center justify-end gap-2 border-t border-white/10 pt-4 mt-2">
+                      {editingId === booking.id ? (
+                        <div className="flex items-center gap-2 w-full">
+                          <input type="date" className="bg-black/40 border border-white/10 rounded px-2 py-1 text-sm flex-1 outline-none focus:border-[#F27D26]" value={editData.date} onChange={e => setEditData({...editData, date: e.target.value})} />
+                          <input type="time" className="bg-black/40 border border-white/10 rounded px-2 py-1 text-sm flex-1 outline-none focus:border-[#F27D26]" value={editData.time} onChange={e => setEditData({...editData, time: e.target.value})} />
+                          <button onClick={() => saveEdit(booking.id)} className="p-1.5 bg-green-500/20 text-green-500 rounded hover:bg-green-500/30 transition-colors"><CheckCircle size={16} /></button>
+                          <button onClick={() => setEditingId(null)} className="p-1.5 bg-red-500/20 text-red-500 rounded hover:bg-red-500/30 transition-colors"><X size={16} /></button>
+                        </div>
+                      ) : (
+                        <>
+                          {booking.status !== 'completed' && (
+                            <button onClick={() => completeBooking(booking.id)} title="إكمال الحجز" className="p-2 text-white/40 hover:text-blue-400 transition-colors">
+                              <CheckCircle size={18} />
+                            </button>
+                          )}
+                          <button onClick={() => { setEditingId(booking.id); setEditData({ date: booking.date, time: booking.time }); }} title="تعديل" className="p-2 text-white/40 hover:text-yellow-400 transition-colors">
+                            <Pencil size={18} />
+                          </button>
+                          <button onClick={() => deleteBooking(booking.id)} title="حذف" className="p-2 text-white/40 hover:text-red-400 transition-colors">
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
