@@ -61,8 +61,8 @@ export default function App() {
           <div className="h-[400px] bg-white/5 rounded-3xl border border-white/10 overflow-hidden grayscale hover:grayscale-0 transition-all duration-700">
             {/* Embedded maps or image placeholder */}
             <iframe 
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d108422.38883582136!2d35.8653!3d31.9566!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x151b5fb85cf4eeed%3A0x2db47fced33a5b65!2z2LnZhdmR2KfZhg!5e0!3m2!1sar!2sjo!4v1715000000000!5m2!1sar!2sjo" 
-              className="w-full h-full border-0 brightness-50"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d114674.39860641217!2d32.82572797680783!3d24.09249767258385!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x14367b5ab0f7b0b1%3A0x6b307cf0fdf8f4a!2sAswan%2C%20Aswan%20Governorate%2C%20Egypt!5e0!3m2!1sen!2seg!4v1715000000000!5m2!1sen!2seg" 
+              className="w-full h-full border-0 brightness-75 hover:brightness-100 transition-all duration-500"
               allowFullScreen={true}
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
