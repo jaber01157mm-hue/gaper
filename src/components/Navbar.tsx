@@ -1,6 +1,5 @@
-import { auth, db } from '@/src/lib/firebase';
-import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { supabase } from '@/src/lib/supabase';
+import { User } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
 import { Car, LogIn, LogOut, LayoutDashboard } from 'lucide-react';
 import { AuthModal } from './AuthModal';
@@ -10,27 +9,36 @@ export default function Navbar() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (u) => {
-      setUser(u);
+    const checkUser = async (u: User | null) => {
       if (u) {
-        // Check if user exists in DB, if not create profile
-        const userRef = doc(db, 'users', u.uid);
-        const userSnap = await getDoc(userRef);
-        
-        if (!userSnap.exists()) {
-          await setDoc(userRef, {
-            uid: u.uid,
+        const { data, error } = await supabase.from('users').select('*').eq('uid', u.id).single();
+        if (error && error.code === 'PGRST116') { // No rows found
+          await supabase.from('users').insert({
+            uid: u.id,
             email: u.email,
-            displayName: u.displayName || u.email?.split('@')[0],
-            createdAt: serverTimestamp(),
+            displayName: u.user_metadata?.full_name || u.email?.split('@')[0],
+            createdAt: new Date().toISOString(),
           });
         }
       }
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      checkUser(u);
     });
-    return () => unsubscribe();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      checkUser(u);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const handleLogout = () => signOut(auth);
+  const handleLogout = () => supabase.auth.signOut();
 
   return (
     <>

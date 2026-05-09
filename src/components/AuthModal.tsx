@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  GoogleAuthProvider, 
-  signInWithPopup,
-  updateProfile
-} from 'firebase/auth';
-import { auth, db } from '@/src/lib/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { supabase } from '@/src/lib/supabase';
 import { X, Mail, Lock, User, Chrome, ArrowRight, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/src/lib/utils';
@@ -29,8 +21,8 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setLoading(true);
     setError(null);
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+      if (error) throw error;
       onClose();
     } catch (err: any) {
       setError(err.message);
@@ -46,21 +38,26 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
       } else {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        
-        // Update profile with name
-        await updateProfile(user, { displayName: name });
-
-        // Save to Firestore
-        await setDoc(doc(db, 'users', user.uid), {
-          uid: user.uid,
-          email: user.email,
-          displayName: name,
-          createdAt: serverTimestamp(),
+        const { data, error } = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: {
+            data: { full_name: name }
+          }
         });
+        if (error) throw error;
+        
+        if (data.user) {
+          await supabase.from('users').insert({
+            uid: data.user.id,
+            email: data.user.email,
+            displayName: name,
+            createdAt: new Date().toISOString(),
+          });
+        }
       }
       onClose();
     } catch (err: any) {

@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { db, auth } from '@/src/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { supabase } from '@/src/lib/supabase';
 import { Calendar, Clock, Car, ChevronRight, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ServiceType } from '@/src/types';
@@ -20,11 +18,12 @@ export default function BookingForm() {
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [user, setUser] = useState(auth.currentUser);
+  const [user, setUser] = useState<any>(null);
 
   React.useEffect(() => {
-    const unsub = auth.onAuthStateChanged(u => setUser(u));
-    return () => unsub();
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => setUser(session?.user ?? null));
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleSmartSuggest = async () => {
@@ -37,8 +36,7 @@ export default function BookingForm() {
 
   const handleLogin = async () => {
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      await supabase.auth.signInWithOAuth({ provider: 'google' });
     } catch (error: any) {
       console.error("Login Error:", error);
       alert("Login failed: " + (error.message || "Unknown error"));
@@ -54,12 +52,13 @@ export default function BookingForm() {
 
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, 'bookings'), {
+      const { error } = await supabase.from('bookings').insert({
         ...formData,
-        userId: user.uid,
+        userId: user.id,
         status: 'pending',
-        createdAt: serverTimestamp()
+        createdAt: new Date().toISOString()
       });
+      if (error) throw error;
       setIsSuccess(true);
       setFormData({ make: '', model: '', serviceType: 'oil_change', date: '', time: '', notes: '' } as any);
     } catch (error) {

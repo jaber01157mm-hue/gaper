@@ -1,22 +1,22 @@
 import { useEffect, useState } from 'react';
-import { db, auth } from '@/src/lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, limit } from 'firebase/firestore';
+import { supabase } from '@/src/lib/supabase';
 import { History, Bell, AlertTriangle, ChevronRight, Gauge, Lock, LogIn, Sparkles, BrainCircuit } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Booking, MaintenanceRecord } from '@/src/types';
 import { cn } from '@/src/lib/utils';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+
 import { handleFirestoreError, OperationType } from '@/src/lib/error-handler';
 import AIAssistant from './AIAssistant';
 
 export default function UserDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(auth.currentUser);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const unsubAuth = auth.onAuthStateChanged(u => setUser(u));
-    return () => unsubAuth();
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => setUser(session?.user ?? null));
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -25,27 +25,36 @@ export default function UserDashboard() {
       return;
     }
 
-    const bQuery = query(
-      collection(db, 'bookings'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
-      limit(5)
-    );
+    const fetchBookings = async () => {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('userId', user.id)
+        .order('createdAt', { ascending: false })
+        .limit(5);
 
-    const unsubscribeBookings = onSnapshot(bQuery, (snapshot) => {
-      setBookings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Booking)));
+      if (error) {
+        console.error("Error fetching bookings:", error);
+      } else {
+        setBookings(data as Booking[]);
+      }
       setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'bookings');
-    });
+    };
 
-    return () => unsubscribeBookings();
+    fetchBookings();
+
+    const channel = supabase.channel('bookings_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: `userId=eq.${user.id}` }, () => {
+        fetchBookings();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const handleLogin = async () => {
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      await supabase.auth.signInWithOAuth({ provider: 'google' });
     } catch (error: any) {
       console.error("Login Error:", error);
       alert("Login failed: " + (error.message || "Unknown error"));
