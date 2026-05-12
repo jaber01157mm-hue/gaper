@@ -43,7 +43,6 @@ export default function App() {
         <BookingForm />
         <UserDashboard />
         <Testimonials />
-        <FAQ />
       </main>
 
       {/* Location / Contact Section */}
