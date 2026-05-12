@@ -1,21 +1,47 @@
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
+import StatsCounter from './components/StatsCounter';
 import Services from './components/Services';
+import WhyChooseUs from './components/WhyChooseUs';
 import BookingForm from './components/BookingForm';
 import UserDashboard from './components/Dashboard';
+import Testimonials from './components/Testimonials';
+import FAQ from './components/FAQ';
+import FloatingButtons from './components/FloatingButtons';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mail, MapPin, Phone, Instagram, Facebook, Twitter } from 'lucide-react';
 
+import AdminDashboard from './components/AdminDashboard';
+import { useState } from 'react';
+
 export default function App() {
+  const [showAdmin, setShowAdmin] = useState(false);
+
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-[#F27D26] selection:text-black">
       <Navbar />
       
       <main>
         <Hero />
+        <StatsCounter />
         <Services />
+        <WhyChooseUs />
         <BookingForm />
-        <UserDashboard />
+        
+        {/* Toggle Dashboard Mode */}
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-center">
+          <button 
+            onClick={() => setShowAdmin(!showAdmin)}
+            className="px-6 py-2 border border-white/10 rounded-full text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white hover:border-white/40 transition-colors"
+          >
+            {showAdmin ? "Switch to User Dashboard" : "Switch to Admin Server Control"}
+          </button>
+        </div>
+
+        {showAdmin ? <AdminDashboard /> : <UserDashboard />}
+
+        <Testimonials />
+        <FAQ />
       </main>
 
       {/* Location / Contact Section */}
@@ -88,6 +114,8 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      <FloatingButtons />
     </div>
   );
 }

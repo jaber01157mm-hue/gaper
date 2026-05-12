@@ -52,6 +52,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-8 text-sm font-medium uppercase tracking-widest text-white/60">
             <a href="#services" className="hover:text-white transition-colors">Services</a>
             <a href="#booking" className="hover:text-white transition-colors">Booking</a>
+            <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
             <a href="#location" className="hover:text-white transition-colors">Location</a>
           </div>
 
