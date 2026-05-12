@@ -70,12 +70,19 @@ export default function AdminDashboard() {
     if (error) alert("Failed to delete");
   };
 
-  const handleLogin = async () => {
+  const [email, setEmail] = useState(ADMIN_EMAIL);
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
     try {
-      await supabase.auth.signInWithOAuth({ provider: 'google' });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
     } catch (error: any) {
       console.error("Login Error:", error);
-      alert("Login failed: " + (error.message || "Unknown error"));
+      setLoginError(error.message || "Invalid login credentials.");
     }
   };
 
@@ -83,24 +90,58 @@ export default function AdminDashboard() {
 
   if (!user || user.email !== ADMIN_EMAIL) {
     return (
-      <section id="admin-dashboard" className="py-24 px-6 bg-[#030303] border-t border-white/5">
-        <div className="max-w-7xl mx-auto">
-          <div className="p-12 text-center bg-white/5 border border-red-500/20 rounded-3xl border-dashed">
+      <section id="admin-dashboard" className="py-24 px-6 bg-[#030303] min-h-screen flex items-center justify-center border-t border-white/5">
+        <div className="max-w-md w-full mx-auto">
+          <div className="p-10 text-center bg-white/5 border border-red-500/20 rounded-3xl">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 text-red-500 mb-6">
               <Lock size={32} />
             </div>
-            <h2 className="text-2xl font-bold mb-4 uppercase tracking-tight text-white">Access Denied</h2>
-            <p className="text-white/40 mb-8 max-w-sm mx-auto">This area is restricted to the platform administrator only.</p>
-            {!user ? (
-              <button 
-                onClick={handleLogin}
-                className="px-8 py-3 bg-red-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 mx-auto hover:bg-red-600 transition-colors"
-              >
-                <LogIn size={20} />
-                <span>ADMIN LOGIN</span>
-              </button>
+            <h2 className="text-2xl font-bold mb-4 uppercase tracking-tight text-white">Admin Access</h2>
+            <p className="text-white/40 mb-8 max-w-sm mx-auto text-sm">Please enter your master password to access the server control panel.</p>
+            
+            {user && user.email !== ADMIN_EMAIL ? (
+              <div className="space-y-4">
+                <p className="text-red-400 font-bold text-sm">Account ({user.email}) does not have admin privileges.</p>
+                <button 
+                  onClick={() => supabase.auth.signOut()}
+                  className="w-full py-3 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20 transition-colors text-sm"
+                >
+                  Sign Out
+                </button>
+              </div>
             ) : (
-              <p className="text-red-400 font-bold">Your current account ({user.email}) does not have admin privileges.</p>
+              <form onSubmit={handleLogin} className="space-y-4 text-left">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Admin Email</label>
+                  <input 
+                    type="email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-red-500 transition-colors text-sm"
+                    required
+                    readOnly
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Password</label>
+                  <input 
+                    type="password" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-red-500 transition-colors text-sm"
+                    required
+                    placeholder="Enter admin password..."
+                  />
+                </div>
+                {loginError && <p className="text-red-500 text-xs text-center">{loginError}</p>}
+                <button 
+                  type="submit"
+                  className="w-full py-3 bg-red-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-red-600 transition-colors mt-6"
+                >
+                  <LogIn size={20} />
+                  <span>SECURE LOGIN</span>
+                </button>
+              </form>
             )}
           </div>
         </div>
