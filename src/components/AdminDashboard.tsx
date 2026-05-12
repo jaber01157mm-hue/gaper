@@ -1,15 +1,32 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/src/lib/supabase';
-import { Activity, Users, Calendar, DollarSign, CheckCircle, Clock, Trash2, ShieldAlert, Database, Server } from 'lucide-react';
+import { Activity, Users, Calendar, DollarSign, CheckCircle, Clock, Trash2, ShieldAlert, Database, Server, Lock, LogIn } from 'lucide-react';
 import { Booking } from '@/src/types';
 import { cn } from '@/src/lib/utils';
+
+const ADMIN_EMAIL = 'jaber01157mm@gmail.com';
 
 export default function AdminDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, pending: 0, completed: 0 });
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (user?.email !== ADMIN_EMAIL) return;
+
     fetchBookings();
 
     const channel = supabase.channel('admin_bookings_channel')
@@ -19,7 +36,7 @@ export default function AdminDashboard() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [user]);
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -53,6 +70,44 @@ export default function AdminDashboard() {
     if (error) alert("Failed to delete");
   };
 
+  const handleLogin = async () => {
+    try {
+      await supabase.auth.signInWithOAuth({ provider: 'google' });
+    } catch (error: any) {
+      console.error("Login Error:", error);
+      alert("Login failed: " + (error.message || "Unknown error"));
+    }
+  };
+
+  if (authLoading) return null;
+
+  if (!user || user.email !== ADMIN_EMAIL) {
+    return (
+      <section id="admin-dashboard" className="py-24 px-6 bg-[#030303] border-t border-white/5">
+        <div className="max-w-7xl mx-auto">
+          <div className="p-12 text-center bg-white/5 border border-red-500/20 rounded-3xl border-dashed">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 text-red-500 mb-6">
+              <Lock size={32} />
+            </div>
+            <h2 className="text-2xl font-bold mb-4 uppercase tracking-tight text-white">Access Denied</h2>
+            <p className="text-white/40 mb-8 max-w-sm mx-auto">This area is restricted to the platform administrator only.</p>
+            {!user ? (
+              <button 
+                onClick={handleLogin}
+                className="px-8 py-3 bg-red-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 mx-auto hover:bg-red-600 transition-colors"
+              >
+                <LogIn size={20} />
+                <span>ADMIN LOGIN</span>
+              </button>
+            ) : (
+              <p className="text-red-400 font-bold">Your current account ({user.email}) does not have admin privileges.</p>
+            )}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="admin-dashboard" className="py-24 px-6 bg-[#030303] border-t border-white/5">
       <div className="max-w-7xl mx-auto">
@@ -64,7 +119,7 @@ export default function AdminDashboard() {
                 SERVER <span className="text-red-500">CONTROL</span>
               </h2>
             </div>
-            <p className="text-white/40">Master Administration Panel for Platform Control.</p>
+            <p className="text-white/40">Master Administration Panel for Platform Control. Logged in as: {user.email}</p>
           </div>
           
           <div className="flex items-center gap-4">
