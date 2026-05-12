@@ -12,10 +12,24 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Mail, MapPin, Phone, Instagram, Facebook, Twitter } from 'lucide-react';
 
 import AdminDashboard from './components/AdminDashboard';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function App() {
-  const [showAdmin, setShowAdmin] = useState(false);
+  const [isAdminRoute, setIsAdminRoute] = useState(false);
+
+  useEffect(() => {
+    if (window.location.pathname === '/admin') {
+      setIsAdminRoute(true);
+    }
+  }, []);
+
+  if (isAdminRoute) {
+    return (
+      <div className="min-h-screen bg-[#050505] text-white selection:bg-[#F27D26] selection:text-black">
+        <AdminDashboard />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-[#F27D26] selection:text-black">
@@ -27,19 +41,7 @@ export default function App() {
         <Services />
         <WhyChooseUs />
         <BookingForm />
-        
-        {/* Toggle Dashboard Mode */}
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-center">
-          <button 
-            onClick={() => setShowAdmin(!showAdmin)}
-            className="px-6 py-2 border border-white/10 rounded-full text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white hover:border-white/40 transition-colors"
-          >
-            {showAdmin ? "Switch to User Dashboard" : "Switch to Admin Server Control"}
-          </button>
-        </div>
-
-        {showAdmin ? <AdminDashboard /> : <UserDashboard />}
-
+        <UserDashboard />
         <Testimonials />
         <FAQ />
       </main>
